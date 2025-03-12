@@ -20,11 +20,11 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [wrongPassword, setWrongPassword] = useState(false);
-    
+
     // Handle Email Submit
     const handleEmailSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setShowPassword(true); 
+        setShowPassword(true);
     };
 
     // Handle Login Submit
@@ -49,6 +49,7 @@ export default function Login() {
         // Set token in local storage and redirect to home page
         if (res.token) {
             localStorage.setItem('token', `bearer ${res.token}`);
+            localStorage.setItem('userId', `${res.userId}`);
             setWrongPassword(false);
             router.push('/home');
         }

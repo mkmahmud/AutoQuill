@@ -12,6 +12,7 @@ export async function POST(req: Request) {
 
         // Find user by email
         const user = await prisma.user.findUnique({ where: { email } });
+
         if (!user) {
             return NextResponse.json({ success: false, error: "Invalid credentials" }, { status: 401 });
         }
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
         });
 
         // Send response with the token and session details
-        return NextResponse.json({ success: true, token, session }, { status: 200 });
+        return NextResponse.json({ success: true, token, session, userId: user.id }, { status: 200 });
     } catch (error) {
         console.error("Error logging in:", error);
         return NextResponse.json({ success: false, error: "Error logging in" }, { status: 500 });

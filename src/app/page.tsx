@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 export default function Home() {
 
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const  token  =  localStorage.getItem('token') ;
   const [showLogout, setShowLogout] = useState(false);
 
   useEffect(() => {
@@ -18,8 +18,7 @@ export default function Home() {
   }, [token]);
 
   const handleLogOut = () => {
-    localStorage.removeItem('token');
-    setToken(null);
+    localStorage.removeItem('token'); 
   };
 
   return (
@@ -48,7 +47,7 @@ export default function Home() {
         <p className="text-lg mb-4">This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>
         <div className="flex flex-col sm:flex-row">
           <button className="bg-blue-500 text-white rounded-full px-6 py-3 mb-2 sm:mb-0 sm:mr-2">
-            <Link href={'/auth/login'} >Get Started</Link>
+            <Link href={'/home'} >Get Started</Link>
           </button>
           <button className="bg-gray-500 text-white rounded-full px-6 py-3">Learn More</button>
         </div>

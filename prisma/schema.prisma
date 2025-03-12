@@ -13,6 +13,8 @@ model User {
   email    String   @unique
   password String
   sessions Session[]
+  chats    Chat[]
+
 }
 
 model Session {
@@ -21,4 +23,25 @@ model Session {
   token     String
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id])
+}
+
+
+model Chat {
+  id        String      @id @default(uuid())
+  userId    String
+  chatName  String
+  createdAt DateTime    @default(now())
+  messages  Message[]
+
+  user      User        @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  sender    String   // "user" or "ai"
+  content   String
+  createdAt DateTime @default(now())
+
+  chat      Chat     @relation(fields: [chatId], references: [id])
 }
