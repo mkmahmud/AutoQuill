@@ -3,10 +3,12 @@ import Image from "next/image";
 import logo from "../assets/logo.png"
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { handleLogOut } from "@/utls/logout";
 
 export default function Home() {
 
-  const  token  =  localStorage.getItem('token') ;
+  // Manage Logout Button
+  const token = localStorage.getItem('token');
   const [showLogout, setShowLogout] = useState(false);
 
   useEffect(() => {
@@ -17,9 +19,6 @@ export default function Home() {
     }
   }, [token]);
 
-  const handleLogOut = () => {
-    localStorage.removeItem('token'); 
-  };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">

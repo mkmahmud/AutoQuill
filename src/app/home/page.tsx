@@ -1,10 +1,11 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Image from 'next/image';
 import logo from "../../assets/logo.png"
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowRight, faArrowLeft, faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRight, faArrowLeft, faCheck } from '@fortawesome/free-solid-svg-icons'
 import InputBox from "@/components/Input";
 
 import ReactMarkdown from "react-markdown";
@@ -23,6 +24,7 @@ export default function Home() {
 
   // Check if user is already logged in or not
   const token = localStorage.getItem('token');
+  const userId = localStorage.getItem('userId');
   useEffect(() => {
     if (!token) {
       router.push('/');
@@ -31,20 +33,60 @@ export default function Home() {
 
   // Sidebar State
   const [sidebar, setSidebar] = useState(true);
-
   // Prompt State
   const [prompt, setPrompt] = useState("");
-
   // Response Loder
   const [responseLoader, setResponseLoader] = useState(false);
-
   // Content State
   const [result, setResult] = useState();
-
-
   // Sidebar Content
   const [data, setData] = useState([]);
+  // Selected Content
+  const [selectedContentId, setSelectedContentId] = useState('');
+  const [selectedContent, setSelectedContent] = useState([]);
 
+
+
+  // Create New Chat
+  const handleCreateNewChat = async (e: any) => {
+    e.preventDefault();
+    const chatName = e.target.chatName.value.trim();
+    if (chatName.split(' ').length < 2) {
+      alert("Chat name must be at least 2 words.");
+      return;
+    }
+    setSelectedContent([]);
+    setSelectedContentId('');
+    setPrompt('');
+    const res = await fetch("../api/chats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, chatName }),
+    });
+    const data = await res.json();  
+    setSelectedContentId(data.id);
+    e.target.reset(); // Reset the input field
+  }
+
+  // Get Chat History
+  useEffect(() => {
+    if (selectedContentId) {
+      fetch(`../api/chats/getchat?chatId=${selectedContentId}`, {
+        method: 'GET'
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (Array.isArray(data.messages)) {
+            setSelectedContent(data.messages);
+          } else {
+            console.error("Expected data.messages to be an array");
+          }
+        })
+        .catch(error => console.error('Error fetching data:', error));
+    }
+  }, [selectedContentId]);
+
+  // Get All CHats 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     if (userId) {
@@ -52,7 +94,7 @@ export default function Home() {
         method: 'GET'
       })
         .then(response => response.json())
-        .then(data => { 
+        .then(data => {
           if (Array.isArray(data.messages)) {
             setData(data.messages);
           } else {
@@ -64,8 +106,14 @@ export default function Home() {
   }, []);
 
 
-  // getting content form Open API
+
+
+
+  // getting content form Open API and save to DB
   const generateContent = async () => {
+
+
+
     const res = await fetch("../api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -74,8 +122,17 @@ export default function Home() {
 
     const data = await res.json();
     setResult(data.result);
+
+    const saveToDB = await fetch("../api/chats/saveaires", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId: selectedContentId, content: prompt, aiResponse: data.result }),
+    });
+
+    const saveintoDB = await saveToDB.json();
     setResponseLoader(false);
   };
+
   return (
 
     <div className="flex h-screen overflow-hidden">
@@ -96,17 +153,22 @@ export default function Home() {
             {/* Chat History */}
 
             <div>
-              <div className="my-4 flex justify-between items-center cursor-pointer p-2 rounded-xl">
-                <h3>Add new</h3>
-                <FontAwesomeIcon icon={faPlus} />
-              </div>
-              
+              <form onSubmit={handleCreateNewChat} className="mt-2 flex justify-between items-center cursor-pointer p-2 rounded-xl">
+                <input className="my-2 w-full  mr-2 outline-none border rounded pl-2 text-lg" placeholder="Enter Chat Name" type="text" name="chatName" id="" />
+                <button type="submit" className="cursor-pointer">
+
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+              </form>
+
+              <h3 className="text-white font-bold">Chat History</h3>
+
               <ul className="mt-4 space-y-2">
                 <ul>
                   {data.map((message, index) => (
                     <li key={index}>
                       {/* @ts-ignore */}
-                      <li className="cursor-pointer hover:bg-stone-800   p-2 rounded-xl">{message.chatName}</li> {/* Display the message object */}
+                      <li onClick={() => setSelectedContentId(message.id)} className="cursor-pointer hover:bg-stone-800   p-2 rounded-xl">{message.chatName}</li> {/* Display the message object */}
                     </li>
                   ))}
                 </ul>
@@ -137,10 +199,32 @@ export default function Home() {
 
           {/* Data Display */}
           {
-            !result && <div className=" p-4 rounded-md">
+            !result || !selectedContent && <div className=" p-4 rounded-md">
               <Image className="my-4 mx-auto" alt="Logo" src={logo} width={100} height={100} />
               <div className="text-2xl font-bold text-center">Welcome to GPT-3 Playground</div>
               <div className="text-lg text-center">Type your prompt and get the result</div>
+            </div>
+          }
+
+          {
+            selectedContent.length > 1 && <div className="p-4 rounded-md text-white">
+              {
+                selectedContent.map((message, index) => (
+                  <div key={index} className="my-4 p-2   rounded-xl overflow-y-auto">
+                    {
+                      // @ts-ignore
+                      message.sender == "user" ? <div className="text-base text-right">{message.content}</div> :
+
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                          {/* @ts-ignore */}
+                          {message.content}
+                        </ReactMarkdown>
+
+                    }
+
+                  </div>
+                ))
+              }
             </div>
           }
 
@@ -165,35 +249,3 @@ export default function Home() {
 }
 
 
-// Understanding Deforestation: Causes, Effects, and Solutions
-// Deforestation, the widespread clearing of forested land, remains a pressing environmental issue with profound global impacts. Forests are essential to the planet, contributing to biodiversity, the water cycle, soil conservation, and climate regulation. Here, we explore the causes, effects, and potential solutions to deforestation.
-
-// Causes of Deforestation
-// 1. Agricultural Expansion
-// The largest driver of deforestation is the expansion of agricultural land for crops and livestock. In regions such as the Amazon, vast areas of forest are cleared for soybean production and cattle ranching.
-
-// 2. Logging
-// Commercial logging, which involves the cutting down of trees for timber and pulp, often leads to deforestation. Illegal logging, in particular, exacerbates the problem, as it is unregulated and unsustainably damages forests.
-
-// 3. Infrastructure Development
-// The construction of roads, dams, and other infrastructure projects typically requires significant deforestation. These developments fragment habitats and open previously inaccessible areas to further exploitation.
-
-// 4. Urban Expansion
-// As global populations grow, cities expand, leading to the clearing of forests for residential and commercial development.
-
-// Effects of Deforestation
-// 1. Biodiversity Loss
-// Forests are home to over 80% of terrestrial species. Deforestation leads to habitat loss, driving many species to extinction. This loss of biodiversity reduces resilience and the ability of ecosystems to respond to environmental changes.
-
-// 2. Climate Change
-// Forests are significant carbon sinks; they absorb CO2 from the atmosphere, mitigating climate change. When forests are destroyed, not only is this CO2 absorption capacity reduced, but the carbon stored in trees is released back into the atmosphere, exacerbating global warming.
-
-// 3. Soil Erosion
-// Without tree cover, the soil is more vulnerable to erosion by wind and rain. Erosion can lead to poorer soil quality, which affects agricultural productivity and can lead to further deforestation.
-
-// 4. Water Cycle Disruption
-// Forests play a critical role in the water cycle by returning water vapor back into the atmosphere. Without trees, areas may become drier, which can affect weather patterns and lead to reduced agricultural yields.
-
-// Solutions to Deforestation
-// 1. Sustainable Agriculture
-// Practices such as agroforestry, permaculture, and sustainable farming can significantly reduce the need for
